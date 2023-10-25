@@ -30,6 +30,17 @@ const CANVAS_WIDTH = TILE_WIDTH * 8;
 const DARK_COLOR = "#5c4033";
 const LIGHT_COLOR = "#C4A484";
 
+const KNIGHT_DIRECTIONS = [
+  [1, -2],
+  [2, -1],
+  [2, 1],
+  [1, 2],
+  [-1, 2],
+  [-2, 1],
+  [-2, -1],
+  [-1, -2],
+];
+
 const DIRECTIONS = [
   [0, -1],
   [1, 0],
@@ -204,6 +215,78 @@ function generate_moves(current_turn) {
       if (piece == KNIGHT) {
         let moves = [];
 
+        KNIGHT_DIRECTIONS.forEach((direction) => {
+          let x = col + direction[0];
+          let y = row + direction[1];
+
+          if (
+            x >= 0 &&
+            x <= 7 &&
+            y >= 0 &&
+            y <= 7 &&
+            (board[y][x] == 0 || (board[y][x] & COLOR_MASK) != color)
+          ) {
+            moves.push(y * 8 + x);
+          }
+        });
+
+        valid_moves[row * 8 + col] = moves;
+      }
+
+      if (piece == PAWN) {
+        let moves = [];
+        let move_dir = color == WHITE ? -1 : 1;
+
+        let y = row + move_dir;
+        let x = col;
+
+        if (y >= 0 && y <= 7 && board[y][x] == 0) {
+          moves.push(y * 8 + x);
+        }
+
+        if (
+          ((row == 1 && color == BLACK) || (row == 6 && color == WHITE)) &&
+          board[y + move_dir][x] == 0
+        ) {
+          moves.push((y + move_dir) * 8 + x);
+        }
+
+        if (
+          x + 1 >= 0 &&
+          x + 1 <= 7 &&
+          board[y][x + 1] &&
+          (board[y][x + 1] & COLOR_MASK) != color
+        ) {
+          moves.push(y * 8 + x + 1);
+        }
+        if (
+          x - 1 >= 0 &&
+          x - 1 <= 7 &&
+          board[y][x - 1] &&
+          (board[y][x - 1] & COLOR_MASK) != color
+        ) {
+          moves.push(y * 8 + x - 1);
+        }
+
+        valid_moves[row * 8 + col] = moves;
+      }
+
+      if (piece == KING) {
+        let moves = [];
+        DIRECTIONS.forEach((direction) => {
+          let x = col + direction[0];
+          let y = row + direction[1];
+
+          if (
+            x >= 0 &&
+            x <= 7 &&
+            y >= 0 &&
+            y <= 7 &&
+            (board[y][x] == 0 || (board[y][x] & COLOR_MASK) != color)
+          ) {
+            moves.push(y * 8 + x);
+          }
+        });
         valid_moves[row * 8 + col] = moves;
       }
     }
