@@ -48,7 +48,7 @@ let board = [
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
-  [9, 9, 9, 9, 9, 9, 9, 9],
+  [0, 9, 9, 9, 9, 9, 9, 9],
   [11, 10, 12, 14, 13, 12, 10, 11],
 ];
 
@@ -58,6 +58,8 @@ let held_piece = {
   piece: null,
   position: null,
 };
+
+let current_turn = 8;
 
 const SQUARES_TO_EDGE = {};
 
@@ -79,7 +81,12 @@ for (let pos = 0; pos < 64; pos++) {
   });
 }
 
+const SELECT_IMAGES = {};
+
 function preload() {
+  SELECT_IMAGES["dot"] = loadImage("images/dot.png");
+  SELECT_IMAGES["circle"] = loadImage("images/circle.png");
+
   GRAPHICS[WHITE + PAWN] = loadImage("images/white-pawn.png");
   GRAPHICS[WHITE + KNIGHT] = loadImage("images/white-knight.png");
   GRAPHICS[WHITE + ROOK] = loadImage("images/white-rook.png");
@@ -97,9 +104,9 @@ function preload() {
 
 function setup() {
   createCanvas(CANVAS_WIDTH, CANVAS_WIDTH);
-  generate_moves();
+  generate_moves(current_turn);
 
-  console.log(valid_moves);
+  // console.log(valid_moves);
 }
 
 function draw() {
@@ -114,6 +121,20 @@ function draw() {
       TILE_WIDTH,
       TILE_WIDTH,
     );
+
+    valid_moves[held_piece.position]?.forEach((position) => {
+      let [x, y] = posToCoordinates(position);
+      let scale_factor = 1.5;
+      tint(255, 100);
+      image(
+        SELECT_IMAGES[board[y][x] ? "circle" : "dot"],
+        x * TILE_WIDTH + (TILE_WIDTH - TILE_WIDTH / scale_factor) / 2,
+        y * TILE_WIDTH + (TILE_WIDTH - TILE_WIDTH / scale_factor) / 2,
+        TILE_WIDTH / scale_factor,
+        TILE_WIDTH / scale_factor,
+      );
+      tint(255, 255);
+    });
   }
 }
 
@@ -138,16 +159,14 @@ function mouseReleased() {
     let [x_prev, y_prev] = posToCoordinates(held_piece.position);
     board[y_prev][x_prev] = 0;
     board[y][x] = held_piece.piece;
+    current_turn = current_turn == 8 ? 16 : 8;
+    generate_moves(current_turn);
   }
-  // recalculate the valid positions
-
-  generate_moves();
-
   held_piece.position = null;
   held_piece.piece = null;
 }
 
-function generate_moves() {
+function generate_moves(current_turn) {
   valid_moves = {};
 
   for (let row = 0; row < 8; row++) {
@@ -155,17 +174,15 @@ function generate_moves() {
       let piece = board[row][col] & RANK_MASK;
       let color = board[row][col] & COLOR_MASK;
 
+      if (current_turn != color) continue;
+
       if (piece == ROOK || piece == BISHOP || piece == QUEEN) {
         let start_dir = piece == BISHOP ? 4 : 0;
         let end_dir = piece == ROOK ? 4 : 8;
 
         let moves = [];
-        // console.log(piece, color);
-
         for (let dir = start_dir; dir < end_dir; dir++) {
           let squares_to_edge = SQUARES_TO_EDGE[row * 8 + col][dir];
-
-          // console.log(squares_to_edge);
 
           for (let i = 0; i < squares_to_edge.length; i++) {
             let [x, y] = posToCoordinates(squares_to_edge[i]);
@@ -180,6 +197,12 @@ function generate_moves() {
             }
           }
         }
+
+        valid_moves[row * 8 + col] = moves;
+      }
+
+      if (piece == KNIGHT) {
+        let moves = [];
 
         valid_moves[row * 8 + col] = moves;
       }
