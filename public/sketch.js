@@ -67,6 +67,8 @@ const EN_PASSANT = {
   white: [false, false, false, false, false, false, false, false],
 };
 
+let PROMOTE_TO = QUEEN;
+
 let board = [
   [19, 18, 20, 22, 21, 20, 18, 19],
   [17, 17, 17, 17, 17, 17, 17, 17],
@@ -131,6 +133,16 @@ function preload() {
 function setup() {
   createCanvas(CANVAS_WIDTH, CANVAS_WIDTH);
   valid_moves = generate_moves(current_turn);
+}
+
+//queen, rook bishop knight
+function keyPressed() {
+  if (keyCode == 81) PROMOTE_TO = QUEEN;
+  else if (keyCode == 82) PROMOTE_TO = ROOK;
+  else if (keyCode == 66) PROMOTE_TO = BISHOP;
+  else if (keyCode == 75) PROMOTE_TO = KNIGHT;
+
+  console.log(`promotion to ${PROMOTE_TO}`);
 }
 
 function draw() {
@@ -218,6 +230,14 @@ function mouseReleased() {
     current_turn = current_turn == 8 ? 16 : 8;
     board[y_prev][x_prev] = 0;
     board[y][x] = held_piece.piece;
+
+    if ((held_piece.piece & RANK_MASK) == PAWN) {
+      let color = held_piece.piece & COLOR_MASK;
+      if ((y == 0 && color == WHITE) || (y == 7 && color == BLACK)) {
+        board[y][x] = PROMOTE_TO + color;
+      }
+    }
+
     valid_moves = generate_moves(current_turn);
 
     for (const position in valid_moves) {
