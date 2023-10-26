@@ -323,6 +323,30 @@ function generate_moves(current_turn) {
         ) {
           moves.push(y * 8 + x - 1);
         }
+        if (
+          row == 3 &&
+          color == WHITE &&
+          (board[row][x + 1] & COLOR_MASK) == BLACK &&
+          EN_PASSANT["black"][x + 1]
+        ) {
+          moves.push(y * 8 + x + 1);
+        }
+        if (
+          row == 4 &&
+          color == BLACK &&
+          (board[row][x - 1] & COLOR_MASK) == WHITE &&
+          EN_PASSANT["white"][x - 1]
+        ) {
+          moves.push(y * 8 + x - 1);
+        }
+        if (
+          row == 4 &&
+          color == BLACK &&
+          (board[row][x + 1] & COLOR_MASK) == WHITE &&
+          EN_PASSANT["white"][x + 1]
+        ) {
+          moves.push(y * 8 + x + 1);
+        }
 
         valid_moves[row * 8 + col] = moves;
       }
