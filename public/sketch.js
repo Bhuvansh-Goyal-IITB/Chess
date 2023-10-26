@@ -9,6 +9,16 @@ function mouseToCoordinate() {
   return [Math.floor(mouseX / 100), Math.floor(mouseY / 100)];
 }
 
+function get_king_pos(board) {
+  let positions = [];
+  for (let row = 0; row < board.length; row++) {
+    for (let col = 0; col < board[0].length; col++) {
+      if ((board[row][col] & RANK_MASK) == KING) positions.push(row * 8 + col);
+    }
+  }
+  return positions;
+}
+
 const PAWN = 1;
 const KNIGHT = 2;
 const ROOK = 3;
@@ -120,9 +130,7 @@ function preload() {
 
 function setup() {
   createCanvas(CANVAS_WIDTH, CANVAS_WIDTH);
-  generate_moves(current_turn);
-
-  // console.log(valid_moves);
+  valid_moves = generate_moves(current_turn);
 }
 
 function draw() {
@@ -170,7 +178,6 @@ function mouseReleased() {
 
   let [x, y] = mouseToCoordinate();
 
-  // if the position is valid then move the piece
   if (valid_moves[held_piece.position]?.includes(y * 8 + x)) {
     let [x_prev, y_prev] = posToCoordinates(held_piece.position);
 
@@ -211,19 +218,72 @@ function mouseReleased() {
     current_turn = current_turn == 8 ? 16 : 8;
     board[y_prev][x_prev] = 0;
     board[y][x] = held_piece.piece;
-    generate_moves(current_turn);
+    valid_moves = generate_moves(current_turn);
+
+    for (const position in valid_moves) {
+      valid_moves[position].forEach((target_position, index) => {
+        let [x_from, y_from] = posToCoordinates(position);
+        let [x_to, y_to] = posToCoordinates(target_position);
+
+        let piece_from = board[y_from][x_from];
+        let piece_to = board[y_to][x_to];
+        board[y_from][x_from] = 0;
+        board[y_to][x_to] = piece_from;
+
+        let next_moves = generate_moves(current_turn == 8 ? 16 : 8);
+
+        let king_pos = get_king_pos(board);
+        for (const from in next_moves) {
+          if (
+            next_moves[from].includes(king_pos[0]) ||
+            next_moves[from].includes(king_pos[1])
+          ) {
+            valid_moves[position] = valid_moves[position].filter((pos) => {
+              return pos != target_position;
+            });
+            break;
+          }
+        }
+
+        board[y_from][x_from] = piece_from;
+        board[y_to][x_to] = piece_to;
+      });
+    }
+  }
+
+  let no_moves = true;
+  for (const from in valid_moves) {
+    if (valid_moves[from].length > 0) no_moves = false;
+  }
+
+  if (no_moves) {
+    let next_moves = generate_moves(current_turn == 8 ? 16 : 8);
+    let king_pos = get_king_pos(board);
+
+    let checkmate = false;
+    for (const from in next_moves) {
+      if (
+        next_moves[from].includes(king_pos[0]) ||
+        next_moves[from].includes(king_pos[1])
+      ) {
+        checkmate = true;
+        break;
+      }
+    }
+
+    if (checkmate) {
+      console.log("Checkmate!");
+    } else {
+      console.log("Stalemate!");
+    }
   }
 
   held_piece.position = null;
   held_piece.piece = null;
 }
 
-// TODO
-// en passant
-// castling
-// checkmate and stalemate
 function generate_moves(current_turn) {
-  valid_moves = {};
+  let valid_moves = {};
 
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
@@ -293,6 +353,7 @@ function generate_moves(current_turn) {
 
         if (
           ((row == 1 && color == BLACK) || (row == 6 && color == WHITE)) &&
+          board[y][x] == 0 &&
           board[y + move_dir][x] == 0
         ) {
           moves.push((y + move_dir) * 8 + x);
@@ -371,10 +432,11 @@ function generate_moves(current_turn) {
       }
     }
   }
+
+  return valid_moves;
 }
 
 function draw_board(held_piece) {
-  // Draw the board
   for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 8; j++) {
       if ((i + j) % 2 == 0) {
@@ -387,7 +449,6 @@ function draw_board(held_piece) {
     }
   }
 
-  // Draw the pieces
   board.forEach((row, y) => {
     row.forEach((piece, x) => {
       if (piece === 0 || y * 8 + x == held_piece) return;
