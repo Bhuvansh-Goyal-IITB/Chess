@@ -52,14 +52,19 @@ const DIRECTIONS = [
   [-1, 1],
 ];
 
+const EN_PASSANT = {
+  black: [false, false, false, false, false, false, false, false],
+  white: [false, false, false, false, false, false, false, false],
+};
+
 let board = [
   [19, 18, 20, 22, 21, 20, 18, 19],
-  [0, 17, 17, 17, 17, 17, 17, 17],
+  [17, 17, 17, 17, 17, 17, 17, 17],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 9, 9, 9, 9, 9, 9, 9],
+  [9, 9, 9, 9, 9, 9, 9, 9],
   [11, 10, 12, 14, 13, 12, 10, 11],
 ];
 
@@ -168,20 +173,62 @@ function mouseReleased() {
   // if the position is valid then move the piece
   if (valid_moves[held_piece.position]?.includes(y * 8 + x)) {
     let [x_prev, y_prev] = posToCoordinates(held_piece.position);
+
+    EN_PASSANT["black"] = [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+    EN_PASSANT["white"] = [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ];
+
+    if ((held_piece.piece & RANK_MASK) == PAWN) {
+      if (y_prev == 1 && y == 3) {
+        EN_PASSANT["black"][x_prev] = true;
+      } else if (y_prev == 6 && y == 4) {
+        EN_PASSANT["white"][x_prev] = true;
+      }
+
+      if (board[y][x] == 0 && x_prev != x) {
+        // en passant !
+        board[y_prev][x] = 0;
+      }
+    }
+
+    current_turn = current_turn == 8 ? 16 : 8;
     board[y_prev][x_prev] = 0;
     board[y][x] = held_piece.piece;
-    current_turn = current_turn == 8 ? 16 : 8;
     generate_moves(current_turn);
   }
+
   held_piece.position = null;
   held_piece.piece = null;
 }
 
+// TODO
+// en passant
+// castling
+// checkmate and stalemate
 function generate_moves(current_turn) {
   valid_moves = {};
 
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
+      if (board[row][col] == 0) continue;
+
       let piece = board[row][col] & RANK_MASK;
       let color = board[row][col] & COLOR_MASK;
 
@@ -264,6 +311,15 @@ function generate_moves(current_turn) {
           x - 1 <= 7 &&
           board[y][x - 1] &&
           (board[y][x - 1] & COLOR_MASK) != color
+        ) {
+          moves.push(y * 8 + x - 1);
+        }
+
+        if (
+          row == 3 &&
+          color == WHITE &&
+          (board[row][x - 1] & COLOR_MASK) == BLACK &&
+          EN_PASSANT["black"][x - 1]
         ) {
           moves.push(y * 8 + x - 1);
         }
