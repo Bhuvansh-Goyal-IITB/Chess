@@ -85,7 +85,7 @@ let held_piece = {
   position: null,
 };
 
-let current_turn = 8;
+let current_turn = WHITE;
 
 const SQUARES_TO_EDGE = {};
 
